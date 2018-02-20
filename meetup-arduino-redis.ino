@@ -38,6 +38,9 @@
 // Last print timestamp
 unsigned long lastSensorRead = 0;
 
+WiFiClient redisConnection;
+IPAddress redisIP;
+
 /********/
 /* Main */
 /********/
@@ -82,6 +85,24 @@ void setup() {
 
 void loop() {
   STATS_LOOP
+
+  if(!redisConnection.connected()) {
+    DEBUG_PRINT("Openning connection to ");
+    DEBUG_PRINT(redis_host);
+    DEBUG_PRINT("(");
+    WiFi.hostByName(redis_host, redisIP);
+    DEBUG_PRINT(redisIP);
+    DEBUG_PRINT("):");
+    int redisPort = atoi(redis_port);
+    DEBUG_PRINT(redis_port);
+    DEBUG_PRINT("...");
+    if(!redisConnection.connect(redisIP, redisPort)) {
+      DEBUG_PRINT("Failed, press Reset");
+      while (1) yield();
+    } else {
+      DEBUG_PRINT("Suceed");
+    }
+  }
 
   if ((millis() - lastSensorRead) > 5000) {
     PROF_START(SensorRead);
