@@ -102,7 +102,20 @@ void loop() {
     } else {
       DEBUG_PRINT("Suceed");
     }
+    // AUTH
+    redisConnection.write("*2\r\n$4\r\nAUTH\r\n$3\r\niot\r\n");
+    // wait reply
+    while(redisConnection.available()==0);
+    while(redisConnection.available()!=0)
+      Serial.print((char)redisConnection.read());
   }
+
+  redisConnection.write("*1\r\n$4\r\nPiNG\r\n");
+  DEBUG_PRINT("PING...");
+    while(redisConnection.available()==0);
+    while(redisConnection.available()!=0)
+      Serial.print((char)redisConnection.read());
+  
 
   if ((millis() - lastSensorRead) > 5000) {
     PROF_START(SensorRead);
