@@ -134,6 +134,7 @@ void loop() {
     while (redisConnection.available()==0) ;
     while (redisConnection.available()!=0)
       Serial.print((char)redisConnection.read());
+      
     PROF_STOP(SensorRead);
     lastSensorRead = millis();
   }
