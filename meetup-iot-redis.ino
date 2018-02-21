@@ -1,3 +1,4 @@
+
 //
 // IoT Redis Workshop
 // F.Cerbelle
@@ -34,12 +35,14 @@
 // in wifi_ssid, wifi_pass, redis_host, redis_port and redis_pass (all char*)
 #define magicNumber "redis1"
 #include "redisiot.h"
+#include <RedisCommand.h>
 
 // Last print timestamp
 unsigned long lastSensorRead = 0;
 
 WiFiClient redisConnection;
 IPAddress redisIP;
+RedisCommand_t redisCommand;
 
 /********/
 /* Main */
@@ -85,7 +88,8 @@ void setup() {
 
 void loop() {
   STATS_LOOP
-
+  char* szRESP;
+  
   if(!redisConnection.connected()) {
     DEBUG_PRINT("Openning connection to ");
     DEBUG_PRINT(redis_host);
@@ -100,27 +104,36 @@ void loop() {
       DEBUG_PRINT("Failed, press Reset");
       while (1) yield();
     } else {
-      DEBUG_PRINT("Suceed");
+      DEBUG_PRINT("Succeed");
     }
     // AUTH
-    redisConnection.write("*2\r\n$4\r\nAUTH\r\n$3\r\niot\r\n");
+    rediscommand_init(redisCommand);
+    rediscommand_add(redisCommand, "AUTH");
+    rediscommand_add(redisCommand, redis_pass);
+    szRESP = rediscommand_tochar(redisCommand);
+    redisConnection.print(szRESP);
+    free(szRESP);
+    
     // wait reply
     while(redisConnection.available()==0);
     while(redisConnection.available()!=0)
       Serial.print((char)redisConnection.read());
   }
 
-  redisConnection.write("*1\r\n$4\r\nPiNG\r\n");
-  DEBUG_PRINT("PING...");
-    while(redisConnection.available()==0);
-    while(redisConnection.available()!=0)
-      Serial.print((char)redisConnection.read());
-  
-
   if ((millis() - lastSensorRead) > 5000) {
     PROF_START(SensorRead);
-    Serial.print("Sensor value (0-1024): ");
-    Serial.println(analogRead(0));
+    
+    rediscommand_init(redisCommand);
+    rediscommand_add(redisCommand,"LPUSH");
+    rediscommand_add(redisCommand,(String("v:")+WiFi.macAddress()).c_str());
+    rediscommand_add(redisCommand,analogRead(0));
+    szRESP=rediscommand_tochar(redisCommand);
+    redisConnection.print(szRESP);
+    free(szRESP);
+
+    while (redisConnection.available()==0) ;
+    while (redisConnection.available()!=0)
+      Serial.print((char)redisConnection.read());
     PROF_STOP(SensorRead);
     lastSensorRead = millis();
   }
